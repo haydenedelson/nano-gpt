@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-import string
 
 def encode(input_string, c_to_i):
     return [c_to_i[c] for c in input_string]
