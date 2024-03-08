@@ -93,7 +93,7 @@ def main(cfg):
             val_loss = run_epoch(model, val_data, loss_fn, cfg)
             wandb.log({f"val/{cfg.loss.name}": val_loss}, step=epoch)
 
-            if (epoch == 0) or (epoch & cfg.logging.generate_interval) == 0 or (epoch == cfg.num_epochs - 1):
+            if (epoch == 0) or (epoch % cfg.logging.generate_interval) == 0 or (epoch == cfg.num_epochs - 1):
                 context = torch.zeros((1, 1), dtype=torch.long, device=DEVICE)
                 generated_text = utils.decode(model.generate(context, max_new_tokens=cfg.logging.num_prediction_tokens)[0].tolist(), i_to_c)
                 print(generated_text)
