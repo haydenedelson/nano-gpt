@@ -1,0 +1,10 @@
+name: gpt
+params:
+  block_size: 64
+  num_layers: 4
+  embed_dim: 256
+  num_heads: 4
+  attn_bias: False
+  linear_expansion_factor: 4
+  activation: gelu
+  dropout: 0.3
