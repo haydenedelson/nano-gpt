@@ -1,8 +1,8 @@
 name: gpt
 params:
-  block_size: 64
-  num_layers: 4
-  embed_dim: 256
+  block_size: 256
+  num_layers: 6
+  embed_dim: 512
   num_heads: 4
   attn_bias: False
   linear_expansion_factor: 4

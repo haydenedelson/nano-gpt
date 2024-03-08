@@ -108,6 +108,10 @@ def main(cfg):
             wandb.log({'learning_rate': optimizer.param_groups[0]['lr'],
                        'momentum': optimizer.param_groups[0]['momentum'] if 'momentum' in optimizer.param_groups[0] else 0.0},
                        step=epoch)
+            
+            # Log gradient updates
+            with torch.no_grad():
+                utils.visualize_updates(run, model, scheduler, epoch)
 
     except KeyboardInterrupt:
         print("Keyboard interrupt detected. Exiting...")
