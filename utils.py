@@ -66,3 +66,6 @@ def visualize_updates(run, model, scheduler, epoch):
 
     run.log({"gradient_values": wandb.Image(g_fig)}, step=epoch)
     run.log({"data_values": wandb.Image(d_fig)}, step=epoch)
+
+    plt.close(fig=g_fig)
+    plt.close(fig=d_fig)

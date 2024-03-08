@@ -43,7 +43,7 @@ def run_epoch(model, data, loss_fn, cfg, optimizer=None):
 @hydra.main(version_base=None, config_name='config', config_path='config')
 def main(cfg):
     torch.manual_seed(cfg.seed)
-    run = wandb.init(project=cfg.project_name, reinit=True, save_code=True, job_type='model-training')
+    run = wandb.init(project=cfg.project_name, name=cfg.experiment_name, reinit=True, save_code=True, job_type='model-training')
 
     # Load data
     with open(os.path.join(hydra.utils.get_original_cwd(), cfg.data.file_path), 'r', encoding='utf-8') as in_file:
