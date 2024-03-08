@@ -63,9 +63,6 @@ def main(cfg):
     train_data = data[:-n_val]
     val_data = data[-n_val:]
 
-    # Check device
-    print("Device:", DEVICE)
-
     # Get model
     model = GPT(vocab_size, **cfg.model.params)
     model = model.to(DEVICE)
@@ -73,6 +70,9 @@ def main(cfg):
     print(model)
     print(f"# of trainable parameters: {trainable_params}")
     wandb.watch(model, log='gradients', log_freq=50, log_graph=True)
+
+    # Check device
+    print("Device:", DEVICE)
 
     # Get optimizer
     optimizer = utils.get_optimizer(model.parameters(), cfg.optimizer)
