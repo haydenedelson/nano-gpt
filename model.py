@@ -93,8 +93,9 @@ class GPT(nn.Module):
         self.transformer.wte.weight = self.lm_head.weight
     
     def forward(self, idx):
+        device = idx.device
         b, t = idx.size()
-        pos = torch.arange(0, t, dtype=torch.long)
+        pos = torch.arange(0, t, dtype=torch.long, device=device)
 
         tok_emb = self.transformer.wte(idx)
         pos_emb = self.transformer.wpe(pos)

@@ -63,6 +63,9 @@ def main(cfg):
     train_data = data[:-n_val]
     val_data = data[-n_val:]
 
+    # Check device
+    print("Device:", DEVICE)
+
     # Get model
     model = GPT(vocab_size, **cfg.model.params)
     model = model.to(DEVICE)
