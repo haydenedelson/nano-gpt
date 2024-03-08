@@ -26,8 +26,6 @@ def run_epoch(model, data, loss_fn, cfg, optimizer=None):
     if optimizer:
         optimizer.zero_grad()
 
-    print(x_batch)
-    print(x_batch.shape)
     logits = model(x_batch)
 
     # Compute loss
@@ -48,7 +46,7 @@ def main(cfg):
     run = wandb.init(project=cfg.project_name, reinit=True, save_code=True, job_type='model-training')
 
     # Load data
-    with open(cfg.data.file_path, 'r', encoding='utf-8') as in_file:
+    with open(os.path.join(hydra.utils.get_original_cwd(), cfg.data.file_path), 'r', encoding='utf-8') as in_file:
         text = in_file.read()
     chars = sorted(sorted(list(set(text))))
     vocab_size = len(chars)
