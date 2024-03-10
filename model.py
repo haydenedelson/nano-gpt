@@ -30,9 +30,9 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout) if dropout > 0 else None
 
     def forward(self, x):
-        # Note n_embed is technically different from self.embed_dim, but may be the same
+        # Note n_embed should be generally be the same as self.embed_dim, but the two may
+        # be different if some intermediate embedding/projection steps change the shape of the tensor
         batch_size, seq_length, n_embed = x.shape
-        print(x.shape)
 
         q, k, v = self.qkv_proj(x).split(self.embed_dim, dim=2)
         # Transpose to (batch_size, num_heads, seq_length, head_size)
@@ -42,7 +42,7 @@ class MultiHeadAttention(nn.Module):
 
         att = F.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout_p if self.training else 0, is_causal=True)
         # Re-assemble all head outputs side-by-side
-        att = att.transpose(1, 2).contiguous().view(batch_size, seq_length, window_size)
+        att = att.transpose(1, 2).contiguous().view(batch_size, seq_length, n_embed)
 
         out = self.out_proj(att)
         if self.dropout:
@@ -141,7 +141,8 @@ if __name__ == "__main__":
     from omegaconf import OmegaConf
     config = OmegaConf.load('config/model/gpt.yaml')
     vocab_size = 100
-    model = GPT(vocab_size, **config)
+    model = GPT(vocab_size, **config.params)
     print(model)
-    # data = torch.randint(vocab_size, (5, 64, ))
+    data = torch.randint(vocab_size, (5, config.params.block_size))
+    print(model(data))
  
