@@ -74,14 +74,11 @@ def visualize_updates(run, model, scheduler, epoch):
 
 def log_artifact(run, artifact, file_paths=None):
     if file_paths:
-        if isinstance(file_paths, list):
-            for fp in file_paths:
-                if os.path.exists(fp):
-                    artifact.add_file(fp)
-        elif isinstance(file_paths, str):
-            artifact.add_file(file_paths)
-        else:
-            raise AssertionError(f"file_paths argument {file_paths} not recognized. Must be instance of: string or list")
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
+        for fp in file_paths:
+            if os.path.exists(fp):
+                artifact.add_file(fp)
 
     run.log_artifact(artifact)
 
