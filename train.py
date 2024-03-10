@@ -137,7 +137,15 @@ def main(cfg):
             model.eval()
             val_loss = run_epoch(model, val_data, loss_fn, cfg)
             wandb.log({f"val/{cfg.loss.name}": val_loss}, step=epoch)
+            
+            # Save model
+            if (epoch % cfg.logging.save_interval == 0) or (epoch == cfg.num_epochs - 1):
+                torch.save(model.state_dict(), os.path.join(save_dir, f'checkpoint_{epoch}.pth'))
+                if not curr_best or val_loss < curr_best:
+                    curr_best = val_loss
+                    torch.save(model.state_dict(), os.path.join(save_dir, 'best.pth'))
 
+            # Generate text and print
             if (epoch % cfg.logging.generate_interval == 0) or (epoch == cfg.num_epochs - 1):
                 context = torch.zeros((1, 1), dtype=torch.long, device=DEVICE)
                 generated_text = utils.decode(model.generate(context, max_new_tokens=cfg.logging.num_prediction_tokens)[0].tolist(), i_to_c)
@@ -150,6 +158,7 @@ def main(cfg):
             scheduler.step()
             wandb.log({f"train/{cfg.loss.name}": train_loss}, step=epoch)
 
+            # Log optimizer
             wandb.log({'learning_rate': optimizer.param_groups[0]['lr'],
                        'momentum': optimizer.param_groups[0]['momentum'] if 'momentum' in optimizer.param_groups[0] else 0.0},
                        step=epoch)
@@ -158,12 +167,7 @@ def main(cfg):
             with torch.no_grad():
                 utils.visualize_updates(run, model, scheduler, epoch)
             
-            if (epoch % cfg.logging.save_interval == 0) or (epoch == cfg.num_epochs - 1):
-                torch.save(model.state_dict(), os.path.join(save_dir, f'checkpoint_{epoch}.pth'))
-                if not curr_best or val_loss < curr_best:
-                    curr_best = val_loss
-                    torch.save(model.state_dict(), os.path.join(save_dir, 'best.pth'))
-            
+            # Log model weights
             if (epoch % cfg.logging.log_interval == 0) or (epoch == cfg.num_epochs - 1):
                 log_model(run, model_artifact, epoch, save_dir)
 
