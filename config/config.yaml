@@ -6,6 +6,10 @@ defaults:
   - scheduler: onecycle
   - logging: logging
 
+# resume_state_artifact:
+#   path:
+#   file:
+
 project_name: SeussGPT
 experiment_name: ${now:%Y-%m-%d_%H:%M:%S}_${project_name}_${model.name}_${data.dataset_name}_${loss.name}_${optimizer.name}_${scheduler.name}
 

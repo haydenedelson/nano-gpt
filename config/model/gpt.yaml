@@ -8,3 +8,7 @@ params:
   linear_expansion_factor: 4
   activation: gelu
   dropout: 0.3
+# checkpoint:
+#   path:
+#   file:
+

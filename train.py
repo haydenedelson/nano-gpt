@@ -92,7 +92,11 @@ def main(cfg):
 
     # Get model
     model = GPT(vocab_size, **cfg.model.params)
+    # Load pre-trained checkpoint if specified
+    if 'checkpoint' in cfg.model and cfg.model.checkpoint is not None:
+        model = utils.load_model_weights(run, model, cfg.model.checkpoint.path, cfg.model.checkpoint.file)
     model = model.to(DEVICE)
+
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(model)
     print(f"# of trainable parameters: {trainable_params}")
@@ -115,6 +119,15 @@ def main(cfg):
     model_name = f"{cfg.model.name}_{cfg.model.params.embed_dim}_{cfg.model.params.num_layers}_{cfg.loss.name}_{cfg.optimizer.name}_{cfg.scheduler.name}"
     model_artifact = wandb.Artifact(name=model_name, type='model-checkpoint')
     train_state_artifact = wandb.Artifact(name=f"{model_name}_train_state", type='training-state')
+
+    # Resume training state if state artifact is specified
+    if 'resume_state_artifact' in cfg and cfg.resume_state_artifact is not None:
+        model, optimizer, scheduler, epoch = utils.load_train_state(run,
+                                                                    cfg.resume_state_artifact.path,
+                                                                    cfg.resume_state_artifact.file,
+                                                                    model,
+                                                                    optimizer,
+                                                                    scheduler)
 
     curr_best = None
     try:
