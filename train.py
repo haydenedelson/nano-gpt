@@ -75,6 +75,9 @@ def main(cfg):
     save_dir = os.path.join(cfg.logging.output_dir, cfg.experiment_name)
     os.makedirs(save_dir, exist_ok=True)
 
+    run.config = cfg
+    run.update()
+
     # Load data
     with open(os.path.join(hydra.utils.get_original_cwd(), cfg.data.file_path), 'r', encoding='utf-8') as in_file:
         text = in_file.read()
