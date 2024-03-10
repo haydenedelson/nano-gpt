@@ -20,7 +20,7 @@ def get_batch(data, batch_size, block_size, device):
     return x, y
 
 
-def log_model(run, model_artifact, epoch, save_dir):
+def log_model(run, artifact_name, artifact_type, epoch, save_dir):
     # Create list of model checkpoints to log
     model_paths = []
     checkpoint_path = os.path.join(save_dir, f'checkpoint_{epoch}.pth')
@@ -30,10 +30,11 @@ def log_model(run, model_artifact, epoch, save_dir):
     if os.path.exists(best_path):
         model_paths.append(best_path)
     # Log artifact
+    model_artifact = wandb.Artifact(name=artifact_name, type=artifact_type)
     utils.log_artifact(run, model_artifact, model_paths)
 
 
-def log_train_state(run, model, optimizer, scheduler, epoch, config, train_state_artifact, save_dir):
+def log_train_state(run, model, optimizer, scheduler, epoch, config, artifact_name, artifact_type, save_dir):
     train_state_dict = {
         'config': config,
         'model': model.state_dict(),
@@ -41,6 +42,8 @@ def log_train_state(run, model, optimizer, scheduler, epoch, config, train_state
         'scheduler': scheduler.state_dict(),
         'epoch': epoch
     }
+
+    train_state_artifact = wandb.Artifact(name=artifact_name, type=artifact_type)
     torch.save(train_state_dict, os.path.join(save_dir, 'train_state.pth'))
     utils.log_artifact(run, train_state_artifact, os.path.join(save_dir, 'train_state.pth'))
 
@@ -116,10 +119,6 @@ def main(cfg):
     loss_fn = utils.get_loss(cfg.loss.name)
     print("Loss:", loss_fn)
 
-    model_name = f"{cfg.model.name}_{cfg.model.params.embed_dim}_{cfg.model.params.num_layers}_{cfg.loss.name}_{cfg.optimizer.name}_{cfg.scheduler.name}"
-    model_artifact = wandb.Artifact(name=model_name, type='model-checkpoint')
-    train_state_artifact = wandb.Artifact(name=f"{model_name}_train_state", type='training-state')
-
     # Resume training state if state artifact is specified
     if 'resume_state_artifact' in cfg and cfg.resume_state_artifact is not None:
         model, optimizer, scheduler, epoch = utils.load_train_state(run,
@@ -129,6 +128,7 @@ def main(cfg):
                                                                     optimizer,
                                                                     scheduler)
 
+    model_name = f"{cfg.model.name}_{cfg.model.params.embed_dim}_{cfg.model.params.num_layers}_{cfg.loss.name}_{cfg.optimizer.name}_{cfg.scheduler.name}"
     curr_best = None
     try:
         for epoch in tqdm(range(cfg.num_epochs)):
@@ -167,14 +167,21 @@ def main(cfg):
             with torch.no_grad():
                 utils.visualize_updates(run, model, scheduler, epoch)
             
-            # Log model weights
-            if (epoch % cfg.logging.log_interval == 0) or (epoch == cfg.num_epochs - 1):
-                log_model(run, model_artifact, epoch, save_dir)
+            # Log training state
+            # Have to do this periodically so we can resume training if random failure happens
+            if (epoch > 0) and ((epoch % cfg.logging.log_interval == 0) or (epoch == cfg.num_epochs - 1)):
+                log_model(run, model_name, 'model-checkpoint', epoch, save_dir)
+                log_train_state(run, model, optimizer, scheduler, epoch, cfg, f"{model_name}_train_state", 'training-state', save_dir)
 
     except KeyboardInterrupt:
         print("Keyboard interrupt detected. Exiting...")
-        log_model(run, model_artifact, epoch, save_dir)
-        log_train_state(run, model, optimizer, scheduler, epoch, cfg, train_state_artifact, save_dir)
+        try:
+            log_model(run, model_name, 'model-checkpoint', epoch, save_dir)
+            log_train_state(run, model, optimizer, scheduler, epoch, cfg, f"{model_name}_train_state", 'training-state', save_dir)
+            print("Model and training state logged successfully.")
+        except Exception as e:
+            print("Logging model weights and training state failed with exception:")
+            print(e)
 
     wandb.finish()
 

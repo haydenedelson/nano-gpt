@@ -1,3 +1,8 @@
+"""
+References:
+Andrej Karpathy's GPT-2 implementation: https://github.com/karpathy/nanoGPT/blob/master/model.py
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,7 +30,9 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout) if dropout > 0 else None
 
     def forward(self, x):
+        # Note n_embed is technically different from self.embed_dim, but may be the same
         batch_size, seq_length, n_embed = x.shape
+        print(x.shape)
 
         q, k, v = self.qkv_proj(x).split(self.embed_dim, dim=2)
         # Transpose to (batch_size, num_heads, seq_length, head_size)
@@ -35,7 +42,7 @@ class MultiHeadAttention(nn.Module):
 
         att = F.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout_p if self.training else 0, is_causal=True)
         # Re-assemble all head outputs side-by-side
-        att = att.transpose(1, 2).contiguous().view(batch_size, seq_length, n_embed)
+        att = att.transpose(1, 2).contiguous().view(batch_size, seq_length, window_size)
 
         out = self.out_proj(att)
         if self.dropout:
@@ -129,4 +136,12 @@ class GPT(nn.Module):
 
         return idx
 
+
+if __name__ == "__main__":
+    from omegaconf import OmegaConf
+    config = OmegaConf.load('config/model/gpt.yaml')
+    vocab_size = 100
+    model = GPT(vocab_size, **config)
+    print(model)
+    # data = torch.randint(vocab_size, (5, 64, ))
  
