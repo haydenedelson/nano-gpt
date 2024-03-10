@@ -1,3 +1,8 @@
+"""
+References:
+Andrej Karpathy's GPT-2 implementation: https://github.com/karpathy/nanoGPT/blob/master/model.py
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,6 +30,8 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout) if dropout > 0 else None
 
     def forward(self, x):
+        # Note n_embed should be generally be the same as self.embed_dim, but the two could
+        # be different if some intermediate embedding/projection steps change the shape of the tensor
         batch_size, seq_length, n_embed = x.shape
 
         q, k, v = self.qkv_proj(x).split(self.embed_dim, dim=2)
@@ -129,4 +136,13 @@ class GPT(nn.Module):
 
         return idx
 
+
+if __name__ == "__main__":
+    from omegaconf import OmegaConf
+    config = OmegaConf.load('config/model/gpt.yaml')
+    vocab_size = 100
+    model = GPT(vocab_size, **config.params)
+    print(model)
+    data = torch.randint(vocab_size, (5, config.params.block_size))
+    print(model(data))
  
