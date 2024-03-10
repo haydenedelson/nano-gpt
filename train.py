@@ -20,7 +20,7 @@ def get_batch(data, batch_size, block_size, device):
     return x, y
 
 
-def log_model(run, model, model_artifact, epoch, save_dir):
+def log_model(run, model_artifact, epoch, save_dir):
     # Create list of model checkpoints to log
     model_paths = []
     checkpoint_path = os.path.join(save_dir, f'checkpoint_{epoch}.pth')
@@ -165,11 +165,11 @@ def main(cfg):
                     torch.save(model.state_dict(), os.path.join(save_dir, 'best.pth'))
             
             if (epoch % cfg.logging.log_interval == 0) or (epoch == cfg.num_epochs - 1):
-                log_model(run, model, model_artifact, save_dir)
+                log_model(run, model_artifact, epoch, save_dir)
 
     except KeyboardInterrupt:
         print("Keyboard interrupt detected. Exiting...")
-        log_model(run, model, model_artifact, save_dir)
+        log_model(run, model_artifact, epoch, save_dir)
         log_train_state(run, model, optimizer, scheduler, epoch, cfg, train_state_artifact, save_dir)
 
     wandb.finish()
