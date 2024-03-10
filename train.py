@@ -120,8 +120,9 @@ def main(cfg):
     print("Loss:", loss_fn)
 
     # Resume training state if state artifact is specified
+    curr_epoch = 0
     if 'resume_state_artifact' in cfg and cfg.resume_state_artifact is not None:
-        model, optimizer, scheduler, epoch = utils.load_train_state(run,
+        model, optimizer, scheduler, curr_epoch = utils.load_train_state(run,
                                                                     cfg.resume_state_artifact.path,
                                                                     cfg.resume_state_artifact.file,
                                                                     model,
@@ -131,7 +132,7 @@ def main(cfg):
     model_name = f"{cfg.model.name}_{cfg.model.params.embed_dim}_{cfg.model.params.num_layers}_{cfg.loss.name}_{cfg.optimizer.name}_{cfg.scheduler.name}"
     curr_best = None
     try:
-        for epoch in tqdm(range(cfg.num_epochs)):
+        for epoch in tqdm(curr_epoch, range(cfg.num_epochs)):
             # Run validation step first per epoch
             torch.set_grad_enabled(False)
             model.eval()
