@@ -30,7 +30,7 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout) if dropout > 0 else None
 
     def forward(self, x):
-        # Note n_embed should be generally be the same as self.embed_dim, but the two may
+        # Note n_embed should be generally be the same as self.embed_dim, but the two could
         # be different if some intermediate embedding/projection steps change the shape of the tensor
         batch_size, seq_length, n_embed = x.shape
 
