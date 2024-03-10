@@ -3,6 +3,7 @@ import hydra
 import torch
 import wandb
 
+from omegaconf import OmegaConf
 from tqdm import tqdm
 
 import utils
@@ -71,12 +72,9 @@ def run_epoch(model, data, loss_fn, cfg, optimizer=None):
 @hydra.main(version_base=None, config_name='config', config_path='config')
 def main(cfg):
     torch.manual_seed(cfg.seed)
-    run = wandb.init(project=cfg.project_name, name=cfg.experiment_name, reinit=True, save_code=True, job_type='model-training')
+    run = wandb.init(project=cfg.project_name, name=cfg.experiment_name, reinit=True, save_code=True, job_type='model-training', config=OmegaConf.to_object(cfg))
     save_dir = os.path.join(cfg.logging.output_dir, cfg.experiment_name)
     os.makedirs(save_dir, exist_ok=True)
-
-    run.config = cfg
-    run.update()
 
     # Load data
     with open(os.path.join(hydra.utils.get_original_cwd(), cfg.data.file_path), 'r', encoding='utf-8') as in_file:
@@ -135,7 +133,7 @@ def main(cfg):
     model_name = f"{cfg.model.name}_{cfg.model.params.embed_dim}_{cfg.model.params.num_layers}_{cfg.loss.name}_{cfg.optimizer.name}_{cfg.scheduler.name}"
     curr_best = None
     try:
-        for epoch in tqdm(curr_epoch, range(cfg.num_epochs)):
+        for epoch in tqdm(range(curr_epoch, cfg.num_epochs), desc="Training epoch"):
             # Run validation step first per epoch
             torch.set_grad_enabled(False)
             model.eval()
@@ -192,6 +190,3 @@ def main(cfg):
 
 if __name__ == "__main__":
     main()
-
-    
-
