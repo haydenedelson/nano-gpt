@@ -28,15 +28,15 @@ Currently, the training script uses simple character-level tokenization.
 
 # Usage
 
-The model code is in `model.py`. To generate text with the model, call the model's `generate` function
+The model code is in `model.py`. To generate text with the model, call the model's `generate` function.
 
-To train the model, simply run `train.py`. The training script uses hydra for config management and Weights & Biases for experiment tracking.
+To train the model, run `train.py`. The training script uses hydra for config management and Weights & Biases for experiment tracking.
 
 To generate text, call the `GPT` class's `generate` function.
 
 # Future Experiments
 
-Over time, the model started heavily overfitting on `Green Eggs and Ham` and, to some extent, `The Cat in the Hat`, likely because of the highly repetitive word usage and structure of these stories (see the `Sample Outputs` section below). The model would benefit greatly from a more general pre-training phase, as well as a larger dataset, and some loss function tuning to mitigate overfitting.
+Over time, the model started heavily overfitting on `Green Eggs and Ham` and, to some extent, `The Cat in the Hat`, likely because of the highly repetitive word usage and structure of these stories (see the `Sample Outputs` section below for examples). The model would benefit greatly from a more general pre-training phase, as well as a larger dataset and some loss function tuning to mitigate overfitting.
 
 ### Sample Outputs
 
