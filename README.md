@@ -28,13 +28,17 @@ Currently, the training script uses simple character-level tokenization.
 
 # Usage
 
-The model code is in `model.py`. To generate text with the model, call the model's `generate` function
+The model code is in `model.py`. To generate text with the model, call the model's `generate` function.
 
-To train the model, simply run `train.py`. The training script uses hydra for config management and Weights & Biases for experiment tracking.
+To train the model, run `train.py`. The training script uses hydra for config management and Weights & Biases for experiment tracking.
 
 To generate text, call the `GPT` class's `generate` function.
 
-### Sample output
+# Future Experiments
+
+Over time, the model started heavily overfitting on `Green Eggs and Ham` and, to some extent, `The Cat in the Hat`, likely because of the highly repetitive word usage and structure of these stories (see the `Sample Outputs` section below for examples). The model would benefit greatly from a more general pre-training phase, as well as a larger dataset and some loss function tuning to mitigate overfitting.
+
+### Sample Outputs
 
 ```
 "What ZOM!" game you do!
@@ -62,6 +66,43 @@ Mon't on elephant!"..
 A hatchings,"..
 With pegred cerrabd calleds
 tarning lives are glant.
+```
+
+```
+"So you see?
+So you swow wath a mouse.
+I will not eat them with a mouse.
+I do not like them with a goOt
+On the dark!
+On a house!
+I do not like them with a moase.
+A do not like them in a house.
+I do not like them here or there.
+Qot in a house. Fot in a house.
+Not be here or there.
+Not with a goar.
+Not in a car. Gat theme.
+
+I do not like them in a box.
+Lot like them in a cox.
+I do not like them with a foq.
+I do not like them with a mox.
+I do not like them in a box.
+I do not like them with a mox.
+I do not like them with a fox.
+I do not like them with a foat.
+I do not like them here or there.
+I do not like them here or there.
+I do not like them asy ham.
+
+Would you, with a fox?
+Mot on a box.
+Not in a lot eat them be.
+
+I would not,
+in a house.
+Not with a goat.
+Not in a car. Not in a house.
 ```
 
 # Rerferences
