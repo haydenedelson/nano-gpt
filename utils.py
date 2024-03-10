@@ -72,17 +72,15 @@ def visualize_updates(run, model, scheduler, epoch):
     plt.close(fig=d_fig)
 
 
-def log_checkpoint(run, model, save_path):
+def log_artifact(run, artifact, file_paths=None):
+    if file_paths:
+        if isinstance(file_paths, list):
+            for fp in file_paths:
+                if os.path.exists(fp):
+                    artifact.add_file(fp)
+        elif isinstance(file_paths, str):
+            artifact.add_file(file_paths)
+        else:
+            raise AssertionError(f"file_paths argument {file_paths} not recognized. Must be instance of: string or list")
 
-
-def log_artifacts(run, cfg, model, optimizer, scheduler, epoch, save_dir):
-    train_state_dict = {
-        'config': cfg,
-        'model': model.state_dict(),
-        'optimizer': optimizer.state_dict(),
-        'scheduler': scheduler.state_dict(),
-        'epoch': epoch
-    }
-
-    artifact_name = f"{cfg.model.name}_{cfg.loss.name}_{cfg.optimizer.name}_{cfg.scheduler.name}_{cfg.data.dataset_name}_train_state"
-    train_state_artifact = wandb.Artifact(name=artifact_name, )
+    run.log_artifact(artifact)

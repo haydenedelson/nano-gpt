@@ -20,6 +20,31 @@ def get_batch(data, batch_size, block_size, device):
     return x, y
 
 
+def log_model(run, model, model_artifact, epoch, save_dir):
+    # Create list of model checkpoints to log
+    model_paths = []
+    checkpoint_path = os.path.join(save_dir, f'checkpoint_{epoch}.pth')
+    if os.path.exists(checkpoint_path):
+        model_paths.append(checkpoint_path)
+    best_path = os.path.join(save_dir, 'best.pth')
+    if os.path.exists(best_path):
+        model_paths.append(best_path)
+    # Log artifact
+    utils.log_artifact(run, model_artifact, model_paths)
+
+
+def log_train_state(run, model, optimizer, scheduler, epoch, config, train_state_artifact, save_dir):
+    train_state_dict = {
+        'config': config,
+        'model': model.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'scheduler': scheduler.state_dict(),
+        'epoch': epoch
+    }
+    torch.save(train_state_dict, os.path.join(save_dir, 'train_state.pth'))
+    utils.log_artifact(run, train_state_artifact, os.path.join(save_dir, 'train_state.pth'))
+
+
 def run_epoch(model, data, loss_fn, cfg, optimizer=None):
     x_batch, y_batch = get_batch(data, cfg.batch_size, cfg.block_size, DEVICE)
 
@@ -87,6 +112,10 @@ def main(cfg):
     loss_fn = utils.get_loss(cfg.loss.name)
     print("Loss:", loss_fn)
 
+    model_name = f"{cfg.model.name}_{cfg.model.params.embed_dim}_{cfg.model.params.num_layers}_{cfg.loss.name}_{cfg.optimizer.name}_{cfg.scheduler.name}"
+    model_artifact = wandb.Artifact(name=model_name, type='model-checkpoint')
+    train_state_artifact = wandb.Artifact(name=f"{model_name}_train_state", type='training-state')
+
     curr_best = None
     try:
         for epoch in tqdm(range(cfg.num_epochs)):
@@ -96,7 +125,7 @@ def main(cfg):
             val_loss = run_epoch(model, val_data, loss_fn, cfg)
             wandb.log({f"val/{cfg.loss.name}": val_loss}, step=epoch)
 
-            if (epoch == 0) or (epoch % cfg.logging.generate_interval == 0) or (epoch == cfg.num_epochs - 1):
+            if (epoch % cfg.logging.generate_interval == 0) or (epoch == cfg.num_epochs - 1):
                 context = torch.zeros((1, 1), dtype=torch.long, device=DEVICE)
                 generated_text = utils.decode(model.generate(context, max_new_tokens=cfg.logging.num_prediction_tokens)[0].tolist(), i_to_c)
                 print(generated_text)
@@ -121,9 +150,14 @@ def main(cfg):
                 if not curr_best or val_loss < curr_best:
                     curr_best = val_loss
                     torch.save(model.state_dict(), os.path.join(save_dir, 'best.pth'))
+            
+            if (epoch % cfg.logging.log_interval == 0) or (epoch == cfg.num_epochs - 1):
+                log_model(run, model, model_artifact, save_dir)
 
     except KeyboardInterrupt:
         print("Keyboard interrupt detected. Exiting...")
+        log_model(run, model, model_artifact, save_dir)
+        log_train_state(run, model, optimizer, scheduler, epoch, cfg, train_state_artifact, save_dir)
 
     wandb.finish()
 
