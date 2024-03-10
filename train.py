@@ -20,6 +20,31 @@ def get_batch(data, batch_size, block_size, device):
     return x, y
 
 
+def log_model(run, model_artifact, epoch, save_dir):
+    # Create list of model checkpoints to log
+    model_paths = []
+    checkpoint_path = os.path.join(save_dir, f'checkpoint_{epoch}.pth')
+    if os.path.exists(checkpoint_path):
+        model_paths.append(checkpoint_path)
+    best_path = os.path.join(save_dir, 'best.pth')
+    if os.path.exists(best_path):
+        model_paths.append(best_path)
+    # Log artifact
+    utils.log_artifact(run, model_artifact, model_paths)
+
+
+def log_train_state(run, model, optimizer, scheduler, epoch, config, train_state_artifact, save_dir):
+    train_state_dict = {
+        'config': config,
+        'model': model.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'scheduler': scheduler.state_dict(),
+        'epoch': epoch
+    }
+    torch.save(train_state_dict, os.path.join(save_dir, 'train_state.pth'))
+    utils.log_artifact(run, train_state_artifact, os.path.join(save_dir, 'train_state.pth'))
+
+
 def run_epoch(model, data, loss_fn, cfg, optimizer=None):
     x_batch, y_batch = get_batch(data, cfg.batch_size, cfg.block_size, DEVICE)
 
@@ -44,6 +69,8 @@ def run_epoch(model, data, loss_fn, cfg, optimizer=None):
 def main(cfg):
     torch.manual_seed(cfg.seed)
     run = wandb.init(project=cfg.project_name, name=cfg.experiment_name, reinit=True, save_code=True, job_type='model-training')
+    save_dir = os.path.join(cfg.logging.output_dir, cfg.experiment_name)
+    os.makedirs(save_dir, exist_ok=True)
 
     # Load data
     with open(os.path.join(hydra.utils.get_original_cwd(), cfg.data.file_path), 'r', encoding='utf-8') as in_file:
@@ -65,7 +92,11 @@ def main(cfg):
 
     # Get model
     model = GPT(vocab_size, **cfg.model.params)
+    # Load pre-trained checkpoint if specified
+    if 'checkpoint' in cfg.model and cfg.model.checkpoint is not None:
+        model = utils.load_model_weights(run, model, cfg.model.checkpoint.path, cfg.model.checkpoint.file)
     model = model.to(DEVICE)
+
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(model)
     print(f"# of trainable parameters: {trainable_params}")
@@ -85,6 +116,20 @@ def main(cfg):
     loss_fn = utils.get_loss(cfg.loss.name)
     print("Loss:", loss_fn)
 
+    model_name = f"{cfg.model.name}_{cfg.model.params.embed_dim}_{cfg.model.params.num_layers}_{cfg.loss.name}_{cfg.optimizer.name}_{cfg.scheduler.name}"
+    model_artifact = wandb.Artifact(name=model_name, type='model-checkpoint')
+    train_state_artifact = wandb.Artifact(name=f"{model_name}_train_state", type='training-state')
+
+    # Resume training state if state artifact is specified
+    if 'resume_state_artifact' in cfg and cfg.resume_state_artifact is not None:
+        model, optimizer, scheduler, epoch = utils.load_train_state(run,
+                                                                    cfg.resume_state_artifact.path,
+                                                                    cfg.resume_state_artifact.file,
+                                                                    model,
+                                                                    optimizer,
+                                                                    scheduler)
+
+    curr_best = None
     try:
         for epoch in tqdm(range(cfg.num_epochs)):
             # Run validation step first per epoch
@@ -93,7 +138,7 @@ def main(cfg):
             val_loss = run_epoch(model, val_data, loss_fn, cfg)
             wandb.log({f"val/{cfg.loss.name}": val_loss}, step=epoch)
 
-            if (epoch == 0) or (epoch % cfg.logging.generate_interval) == 0 or (epoch == cfg.num_epochs - 1):
+            if (epoch % cfg.logging.generate_interval == 0) or (epoch == cfg.num_epochs - 1):
                 context = torch.zeros((1, 1), dtype=torch.long, device=DEVICE)
                 generated_text = utils.decode(model.generate(context, max_new_tokens=cfg.logging.num_prediction_tokens)[0].tolist(), i_to_c)
                 print(generated_text)
@@ -112,9 +157,20 @@ def main(cfg):
             # Log gradient updates
             with torch.no_grad():
                 utils.visualize_updates(run, model, scheduler, epoch)
+            
+            if (epoch % cfg.logging.save_interval == 0) or (epoch == cfg.num_epochs - 1):
+                torch.save(model.state_dict(), os.path.join(save_dir, f'checkpoint_{epoch}.pth'))
+                if not curr_best or val_loss < curr_best:
+                    curr_best = val_loss
+                    torch.save(model.state_dict(), os.path.join(save_dir, 'best.pth'))
+            
+            if (epoch % cfg.logging.log_interval == 0) or (epoch == cfg.num_epochs - 1):
+                log_model(run, model_artifact, epoch, save_dir)
 
     except KeyboardInterrupt:
         print("Keyboard interrupt detected. Exiting...")
+        log_model(run, model_artifact, epoch, save_dir)
+        log_train_state(run, model, optimizer, scheduler, epoch, cfg, train_state_artifact, save_dir)
 
     wandb.finish()
 

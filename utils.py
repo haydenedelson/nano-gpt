@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import wandb
+import os
 
 def encode(input_string, c_to_i):
     return [c_to_i[c] for c in input_string]
@@ -69,3 +70,51 @@ def visualize_updates(run, model, scheduler, epoch):
 
     plt.close(fig=g_fig)
     plt.close(fig=d_fig)
+
+
+def log_artifact(run, artifact, file_paths=None):
+    if file_paths:
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
+        for fp in file_paths:
+            if os.path.exists(fp):
+                artifact.add_file(fp)
+
+    run.log_artifact(artifact)
+
+
+def load_model_weights(run, model, model_checkpoint_wandb_path, model_checkpoint_file):
+    try:
+        model_checkpoint = run.use_artifact(model_checkpoint_wandb_path)
+        model_checkpoint_remote_file = model_checkpoint.get_entry(model_checkpoint_file)
+        model_checkpoint_local_file = model_checkpoint_remote_file.download()
+
+        model_state_dict = torch.load(model_checkpoint_local_file)
+        model.load_state_dict(model_state_dict.state_dict(), strict=True)
+
+    except Exception as e:
+        print(f"Loading model state dict failed with exception:")
+        print(e)
+        print("Returning unloaded model")
+    
+    return model
+    
+
+def load_train_state(run, resume_artifact_wandb_path, resume_artifact_file, model, optimizer, scheduler):
+    try:
+        resume_artifact = run.use_artifact(resume_artifact_wandb_path)
+        resume_artifact_remote_file = resume_artifact.get_entry(resume_artifact_file)
+        resume_artifact_local_file = resume_artifact_remote_file.download()
+        resume_state_dict = torch.load(resume_artifact_local_file)
+
+        model.load_state_dict(resume_state_dict['model'])
+        optimizer.load_state_dict(resume_state_dict['optimizer'])
+        scheduler.load_state_dict(resume_state_dict['scheduler'])
+        epoch = resume_state_dict.get('epoch', 0)
+
+    except Exception as e:
+        print(f"Load training state failed with excpetion:")
+        print(e)
+        print("Returning unloaded objects")
+
+    return model, optimizer, scheduler, epoch
