@@ -44,6 +44,8 @@ def run_epoch(model, data, loss_fn, cfg, optimizer=None):
 def main(cfg):
     torch.manual_seed(cfg.seed)
     run = wandb.init(project=cfg.project_name, name=cfg.experiment_name, reinit=True, save_code=True, job_type='model-training')
+    save_dir = os.path.join(cfg.logging.output_dir, cfg.experiment_name)
+    os.makedirs(save_dir, exist_ok=True)
 
     # Load data
     with open(os.path.join(hydra.utils.get_original_cwd(), cfg.data.file_path), 'r', encoding='utf-8') as in_file:
@@ -85,6 +87,7 @@ def main(cfg):
     loss_fn = utils.get_loss(cfg.loss.name)
     print("Loss:", loss_fn)
 
+    curr_best = None
     try:
         for epoch in tqdm(range(cfg.num_epochs)):
             # Run validation step first per epoch
@@ -93,7 +96,7 @@ def main(cfg):
             val_loss = run_epoch(model, val_data, loss_fn, cfg)
             wandb.log({f"val/{cfg.loss.name}": val_loss}, step=epoch)
 
-            if (epoch == 0) or (epoch % cfg.logging.generate_interval) == 0 or (epoch == cfg.num_epochs - 1):
+            if (epoch == 0) or (epoch % cfg.logging.generate_interval == 0) or (epoch == cfg.num_epochs - 1):
                 context = torch.zeros((1, 1), dtype=torch.long, device=DEVICE)
                 generated_text = utils.decode(model.generate(context, max_new_tokens=cfg.logging.num_prediction_tokens)[0].tolist(), i_to_c)
                 print(generated_text)
@@ -112,6 +115,12 @@ def main(cfg):
             # Log gradient updates
             with torch.no_grad():
                 utils.visualize_updates(run, model, scheduler, epoch)
+            
+            if (epoch % cfg.logging.save_interval == 0) or (epoch == cfg.num_epochs - 1):
+                torch.save(model.state_dict(), os.path.join(save_dir, f'checkpoint_{epoch}.pth'))
+                if not curr_best or val_loss < curr_best:
+                    curr_best = val_loss
+                    torch.save(model.state_dict(), os.path.join(save_dir, 'best.pth'))
 
     except KeyboardInterrupt:
         print("Keyboard interrupt detected. Exiting...")

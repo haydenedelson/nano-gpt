@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import wandb
+import os
 
 def encode(input_string, c_to_i):
     return [c_to_i[c] for c in input_string]
@@ -69,3 +70,19 @@ def visualize_updates(run, model, scheduler, epoch):
 
     plt.close(fig=g_fig)
     plt.close(fig=d_fig)
+
+
+def log_checkpoint(run, model, save_path):
+
+
+def log_artifacts(run, cfg, model, optimizer, scheduler, epoch, save_dir):
+    train_state_dict = {
+        'config': cfg,
+        'model': model.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'scheduler': scheduler.state_dict(),
+        'epoch': epoch
+    }
+
+    artifact_name = f"{cfg.model.name}_{cfg.loss.name}_{cfg.optimizer.name}_{cfg.scheduler.name}_{cfg.data.dataset_name}_train_state"
+    train_state_artifact = wandb.Artifact(name=artifact_name, )

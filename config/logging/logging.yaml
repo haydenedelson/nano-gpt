@@ -1,2 +1,4 @@
 generate_interval: 100
 num_prediction_tokens: 2000
+output_dir: logs
+save_interval: 5
