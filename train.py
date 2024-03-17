@@ -77,8 +77,10 @@ def main(cfg):
     os.makedirs(save_dir, exist_ok=True)
 
     # Load data
-    with open(os.path.join(hydra.utils.get_original_cwd(), cfg.data.file_path), 'r', encoding='utf-8') as in_file:
-        text = in_file.read()
+    text = ""
+    for fp in cfg.data.file_paths:
+        with open(os.path.join(hydra.utils.get_original_cwd(), fp), 'r', encoding='utf-8') as in_file:
+            text += in_file.read()
     chars = sorted(sorted(list(set(text))))
     vocab_size = len(chars)
 
