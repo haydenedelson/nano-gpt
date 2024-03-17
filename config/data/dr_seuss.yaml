@@ -1,4 +1,6 @@
 dataset_name: dr_seuss
-file_path: data/dr_seuss.txt
+file_paths:
+  - data/dr_seuss.txt
+  - data/dr_seuss_synthetic.txt
 val_pct: 0.1
 batch_size: 256
