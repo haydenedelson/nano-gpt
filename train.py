@@ -76,7 +76,7 @@ def main(cfg):
     save_dir = os.path.join(cfg.logging.output_dir, cfg.experiment_name)
     os.makedirs(save_dir, exist_ok=True)
 
-    # Load data
+    # Lazily load data for small dataset
     text = ""
     for fp in cfg.data.file_paths:
         with open(os.path.join(hydra.utils.get_original_cwd(), fp), 'r', encoding='utf-8') as in_file:
